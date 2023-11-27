@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SignUp Page</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
 </head>
 
 <body>
@@ -16,7 +18,7 @@
     <div>
         <form onsubmit="submitData(event);">
             <label>Enter Name :</label>
-            <input type="text" name="name" id="inputName" >
+            <input type="text" name="name" id="inputName">
             <label>Enter Email :</label>
             <input type="text" name="email" id="inputEmail">
             <label>Enter Password :</label>
@@ -61,12 +63,32 @@
                 showMessage('Empty fields', 'failureMessage');
             }
             else {
-                const msg = document.getElementById('message');
-                showMessage('SignUp Successful', 'succesMessage');
 
-                document.getElementById('inputName').value = "";
-                document.getElementById('inputEmail').value = "";
-                document.getElementById('inputPassword').value = "";
+                const obj = {
+                    name: name,
+                    email: email,
+                    password: password
+                }
+
+                try {
+                    const res = await axios.post('http://localhost:3000/user/signup', obj);
+                    console.log('data added');
+                    console.log('res data = ' + JSON.stringify(res));
+                    console.log('res name = ' + res.data.newUserDetails.name);
+                    console.log('res email = ' + res.data.newUserDetails.email);
+                    console.log('res password = ' + res.data.newUserDetails.password);
+
+                    showMessage('SignUp Successful', 'succesMessage');
+                    document.getElementById('inputName').value = "";
+                    document.getElementById('inputEmail').value = "";
+                    document.getElementById('inputPassword').value = "";
+                }
+                catch (err) {
+                    err => {
+                        console.log('error : duplicate mails');
+                        console.log(err)
+                    }
+                }
             }
 
         }//submitData

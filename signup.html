@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignUp Page</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header>
+        <h2>SignUp</h2>
+    </header>
+
+    <div>
+        <form onsubmit="submitData(event);">
+            <label>Enter Name :</label>
+            <input type="text" name="name" id="inputName" >
+            <label>Enter Email :</label>
+            <input type="text" name="email" id="inputEmail">
+            <label>Enter Password :</label>
+            <input type="password" name="password" id="inputPassword">
+            <button type="submit">SignUp</button>
+        </form>
+    </div>
+    <div id="message">
+
+    </div>
+
+    <script>
+        //function to display the message
+        function showMessage(msgText, className) {
+            const msg = document.getElementById('message');
+            const div = document.createElement('div');
+            const textNode = document.createTextNode(msgText);
+            div.appendChild(textNode);
+            msg.appendChild(div);
+
+            msg.classList.add(className);
+
+            setTimeout(() => {
+                msg.classList.remove(className);
+                msg.removeChild(div);
+            }, 2000);
+        }
+
+        async function submitData(event) {
+            event.preventDefault();
+            // Get values from the form
+            const name = document.getElementById('inputName').value;
+            const email = document.getElementById('inputEmail').value;
+            const password = document.getElementById('inputPassword').value;
+
+            console.log('name = ' + name);
+            console.log('email = ' + email);
+            console.log('password = ' + password);
+
+            if (name === "" || email === "" || password === "") {
+                console.log('empty fields');
+                showMessage('Empty fields', 'failureMessage');
+            }
+            else {
+                const msg = document.getElementById('message');
+                showMessage('SignUp Successful', 'succesMessage');
+
+                document.getElementById('inputName').value = "";
+                document.getElementById('inputEmail').value = "";
+                document.getElementById('inputPassword').value = "";
+            }
+
+        }//submitData
+    </script>
+</body>
+
+</html>

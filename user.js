@@ -1,5 +1,6 @@
 //importing error to handle it
 const User = require('../models/user');
+const bcrypt = require('bcrypt');
 
 //to post the records to database
 exports.postAddUser = async (req, res, next) => {
@@ -14,13 +15,22 @@ exports.postAddUser = async (req, res, next) => {
         return res.status(400).json({ err: 'Input fields are empty' })
     }
 
-    const newUser = await User.create({
-        name: name,
-        email: email,
-        password: password,
-    });
+    //number of hashing or strengthen
+    const saltRounds = 10;
+    bcrypt.hash(password, saltRounds, async (err, hash) => {
+        console.log('err = ' + err);
+        console.log('hash = ' + hash);
+
+        const newUser = await User.create({
+            name: name,
+            email: email,
+            password: hash,
+        });
+
+        res.status(201).json({ newUserDetails: newUser, meassage: ' SignUpSuccessful' });
+    })
+
     //will send json response back to the client
-    res.status(201).json({ newUserDetails: newUser });
 }
 
 //to get the records from db
@@ -32,16 +42,27 @@ exports.postSignUser = async (req, res, next) => {
     console.log('password = ' + password);
 
     if (email == '' || email == undefined) {
-        return res.status(400).json({ err: 'email required' });
+        return res.status(400).json({ success: false, message: 'email required' });
     }
 
     const userData = await User.findAll({
         where: { email: email }
     })
-
     if (userData.length == 0) {
-        return res.status(400).json({ err: 'User not found' });
+        return res.status(400).json({ success: false, message: 'Email not found' });
     }
-    //will send json response back to the client
-    res.status(201).json({ userDetails: userData });
+
+    const getUserData = userData[0];
+    console.log('userData = ' + JSON.stringify(userData));
+    console.log('user password = ' + getUserData.password);
+
+    bcrypt.compare(password, getUserData.password, (err, response) => {
+        if (!err) {
+            //will send json response back to the client
+            res.status(201).json({ success: true, userDetails: userData });
+        }
+        else {
+            return res.status(400).json({ success: false, message: 'Password is incorrect' });
+        }
+    });
 }

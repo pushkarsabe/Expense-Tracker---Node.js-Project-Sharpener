@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Expense Page</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+        }
+
+        .formExpense {
+            margin: 30px;
+            padding: 15px;
+            background-color: aliceblue;
+        }
+
+        header {
+            display: flex;
+            justify-content: center;
+            margin: 20px;
+            padding: 20px;
+            background-color: lavender;
+        }
+
+        label {
+            display: block;
+        }
+
+        input {
+            width: 50%;
+        }
+
+        .signUp {
+            margin: 10px;
+            text-decoration: none;
+        }
+
+        form {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            max-width: 400px;
+            /* Adjust the maximum width as needed */
+            margin: 0 auto;
+            /* Centers the form */
+        }
+
+        label,
+        input,
+        select,
+        button {
+            margin-bottom: 10px;
+        }
+
+        select {
+            flex: 1;
+            /* Takes up remaining space */
+            margin-right: 10px;
+            /* Adjust the margin as needed */
+        }
+
+        button {
+            flex-basis: 150px;
+            /* Adjust the initial width as needed */
+        }
+
+        .succesMessage {
+            background-color: rgb(0, 255, 0, 0.5);
+            margin: 20px;
+            padding: 5px;
+        }
+
+        .failureMessage {
+            /* background-color: red; */
+            background-color: rgba(255, 0, 0, 0.5);
+            margin: 20px;
+            padding: 5px;
+        }
+
+        .expense-card {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h2>Daily Expenses</h2>
+    </header>
+
+    <div class="formExpense">
+        <form onsubmit="submitData(event);">
+            <label for="money">Enter Money :</label>
+            <input type="number" name="money" id="inputMoney" required>
+            <label for="description">Enter Description :</label>
+            <input type="text" name="description" id="inputDescription" required>
+            <select id="options">
+                <option value="food">Food</option>
+                <option value="petrol">Petrol</option>
+                <option value="salary">Salary</option>
+                <option value="bill">Bill</option>
+                <option value="electricity">Electricity</option>
+                <option value="maintenance">Maintenance</option>
+                <option value="insurance">Insurance</option>
+                <option value="rent">Rent</option>
+            </select>
+            <button type="submit">Add Expense</button>
+        </form>
+    </div>
+    <div id="message">
+    </div>
+    <div id="addedExpenses">
+
+    </div>
+
+    <script>
+        const expenseDivContainer = document.getElementById('addedExpenses');
+
+        //function to display the message
+        function printAllExpenses(data) {
+            // console.log('id = ' + data.id);
+            // console.log('money = ' + data.money);
+            // console.log('description = ' + data.description);
+            // console.log('options = ' + data.options);
+
+            const expenseDiv = document.createElement('div');
+            expenseDiv.classList.add('expense-card');
+            expenseDiv.innerHTML =
+                `<p>Money: ${data.money}</P>
+                <p>Description: ${data.description}</P>
+                <p>Options: ${data.options}</P>
+                <button type="button" id = "${data.id}" onclick="deleteExpense(${data.id})">Delete</button>
+                `;
+            expenseDivContainer.appendChild(expenseDiv);
+        }//printAllExpenses
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await axios.get(`http://localhost:3000/expense/get-expense`);
+                // console.log('response:' + JSON.stringify(response));
+
+                for (let i = 0; i < response.data.expenseData.length; i++) {
+                    printAllExpenses(response.data.expenseData[i]);
+                }
+
+            }
+            catch (error) {
+                console.log('Unhandled error:', error);
+            }
+        })//DOMContentLoaded
+
+        //function to display the message
+        function showMessage(msgText, className) {
+            const msg = document.getElementById('message');
+            const div = document.createElement('div');
+            const textNode = document.createTextNode(msgText);
+            div.appendChild(textNode);
+            msg.appendChild(div);
+            msg.classList.add(className);
+
+            setTimeout(() => {
+                msg.classList.remove(className);
+                msg.removeChild(div);
+            }, 2000);
+        }
+
+        async function submitData(event) {
+            event.preventDefault();
+            // Get values from the form
+            const money = document.getElementById('inputMoney').value;
+            const description = document.getElementById('inputDescription').value;
+            const options = document.getElementById('options').value;
+
+            console.log('money = ' + money);
+            console.log('description = ' + description);
+            console.log('options = ' + options);
+
+            const obj = {
+                money: money,
+                description: description,
+                options: options
+            }
+
+            try {
+                const response = await axios.post(`http://localhost:3000/expense/add-expense`, obj);
+                console.log('response data = ' + JSON.stringify(response.data));
+                console.log('money = ' + response.data.newExpenseData.money);
+                console.log('description = ' + response.data.newExpenseData.description);
+                console.log('options = ' + response.data.newExpenseData.options);
+
+                document.getElementById('inputMoney').value = "";
+                document.getElementById('inputDescription').value = "";
+                document.getElementById('options').value = "";
+
+                showMessage(response.data.message, 'succesMessage');
+
+                const expenseDiv = document.createElement('div');
+                expenseDiv.classList.add('expense-card');
+
+                expenseDiv.innerHTML =
+                    `<p>Money: ${response.data.newExpenseData.money}</P>
+                <p>Description: ${response.data.newExpenseData.description}</P>
+                <p>Options: ${response.data.newExpenseData.options}</P>
+                <button type="button"  id = "${response.data.newExpenseData.id}" onclick="deleteExpense(${response.data.newExpenseData.id})">Delete</button>
+                `;
+
+                expenseDivContainer.appendChild(expenseDiv);
+
+            }
+            catch (error) {
+                //to handle the output response errors
+                if (error.response && error.response.status == 400) {
+                    console.log('Error object:', error.response.data.message);
+                    showMessage(error.response.data.message, 'failureMessage');
+                } else {
+                    console.log('Unhandled error:', error);
+                    // Handle other errors here
+                }
+            }
+
+        }//submitData
+
+        async function deleteExpense(id) {
+            console.log('id:', id);
+
+            //to delete data from backend 
+            try {
+                const response = await axios.delete(`http://localhost:3000/expense/delete-expense/${id}`);
+                console.log('response:', response);
+                showMessage(response.data.message, 'succesMessage');
+            }
+            catch (error) {
+                //to handle the output response errors
+                if (error.response && error.response.status == 400) {
+                    console.log('Error object:', error.response.data.message);
+                } else {
+                    console.log('Unhandled error:', error);
+                }
+            }
+
+            //to delete data from frotend 
+            const parentele = document.getElementById(id).parentNode;
+            expenseDivContainer.removeChild(parentele);
+        }//deleteExpense
+
+    </script>
+</body>
+
+</html>

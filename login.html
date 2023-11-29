@@ -42,6 +42,7 @@
 
         async function submitData(event) {
             event.preventDefault();
+            console.log('inside submitData login');
             // Get values from the form
             const email = document.getElementById('inputEmail').value;
             const password = document.getElementById('inputPassword').value;
@@ -61,10 +62,12 @@
                 const dataUser = response.data.userDetails[0];
                 console.log('email = ' + dataUser.email);
                 console.log('password = ' + dataUser.password);
+                console.log('token = ' + response.data.token);
+                localStorage.setItem('token', response.data.token);
 
                 showMessage('Email and Password verified', 'succesMessage');
                 alert('Logged in successfully');
-
+                window.location.href = 'addExpense.html';
             }
             catch (error) {
                 //to handle the output response errors

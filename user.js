@@ -1,10 +1,11 @@
 //importing error to handle it
 const User = require('../models/user');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 //to post the records to database
 exports.postAddUser = async (req, res, next) => {
-    //post always uses bosy
+    //post always uses body
     const name = req.body.name;
     const email = req.body.email;
     const password = req.body.password;
@@ -34,7 +35,7 @@ exports.postAddUser = async (req, res, next) => {
 }
 
 //to get the records from db
-exports.postSignUser = async (req, res, next) => {
+exports.postLoginUser = async (req, res, next) => {
     //get always uses param
     const email = req.body.email;
     const password = req.body.password;
@@ -54,15 +55,21 @@ exports.postSignUser = async (req, res, next) => {
 
     const getUserData = userData[0];
     console.log('userData = ' + JSON.stringify(userData));
+    console.log('user id = ' + getUserData.id);
     console.log('user password = ' + getUserData.password);
+    console.log('user name = ' + getUserData.name);
 
     bcrypt.compare(password, getUserData.password, (err, response) => {
         if (!err) {
             //will send json response back to the client
-            res.status(201).json({ success: true, userDetails: userData });
+            res.status(201).json({ success: true, userDetails: userData, token: generateAccessToken(getUserData.id, getUserData.name) });
         }
         else {
             return res.status(400).json({ success: false, message: 'Password is incorrect' });
         }
     });
+}
+
+function generateAccessToken(id, name) {
+    return jwt.sign({ userid: id, name: name }, 'secretkey');
 }

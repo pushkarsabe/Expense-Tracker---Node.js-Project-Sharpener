@@ -142,9 +142,15 @@
         }//printAllExpenses
 
         document.addEventListener('DOMContentLoaded', async () => {
+            console.log('inside DOMContentLoaded expense');
+            const token = localStorage.getItem('token');
+            console.log('token:' + token);
             try {
-                const response = await axios.get(`http://localhost:3000/expense/get-expense`);
-                // console.log('response:' + JSON.stringify(response));
+                const response = await axios.get(`http://localhost:3000/expense/get-expense`, {
+                    headers: {
+                        "Authorization": token
+                    }
+                });
 
                 for (let i = 0; i < response.data.expenseData.length; i++) {
                     printAllExpenses(response.data.expenseData[i]);
@@ -173,6 +179,7 @@
 
         async function submitData(event) {
             event.preventDefault();
+            console.log('inside submitData expense');
             // Get values from the form
             const money = document.getElementById('inputMoney').value;
             const description = document.getElementById('inputDescription').value;
@@ -189,7 +196,13 @@
             }
 
             try {
-                const response = await axios.post(`http://localhost:3000/expense/add-expense`, obj);
+                const token = localStorage.getItem('token');
+                console.log('token:' + token);
+                const response = await axios.post(`http://localhost:3000/expense/add-expense`, obj, {
+                    headers: {
+                        "Authorization": token
+                    }
+                });
                 console.log('response data = ' + JSON.stringify(response.data));
                 console.log('money = ' + response.data.newExpenseData.money);
                 console.log('description = ' + response.data.newExpenseData.description);
@@ -229,10 +242,11 @@
 
         async function deleteExpense(id) {
             console.log('id:', id);
-
+            console.log('inside deleteExpense expense');
             //to delete data from backend 
+            const token = localStorage.getItem('token');
             try {
-                const response = await axios.delete(`http://localhost:3000/expense/delete-expense/${id}`);
+                const response = await axios.delete(`http://localhost:3000/expense/delete-expense/${id}`, { headers: { "Authorization": token } });
                 console.log('response:', response);
                 showMessage(response.data.message, 'succesMessage');
             }

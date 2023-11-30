@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Expense Page</title>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -15,6 +14,7 @@
             margin: 30px;
             padding: 15px;
             background-color: aliceblue;
+            margin-top: 55px;
         }
 
         header {
@@ -23,6 +23,7 @@
             margin: 20px;
             padding: 20px;
             background-color: lavender;
+            margin-bottom: 13px;
         }
 
         label {
@@ -65,6 +66,8 @@
         button {
             flex-basis: 150px;
             /* Adjust the initial width as needed */
+            background-color: azure;
+            border-radius: 5px;
         }
 
         .succesMessage {
@@ -87,6 +90,14 @@
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
+
+        .buyPremiumBtn {
+            padding: 5px;
+            float: right;
+            margin-right: 50px;
+            background-color: azure;
+            border-radius: 5px;
+        }
     </style>
 </head>
 
@@ -94,7 +105,7 @@
     <header>
         <h2>Daily Expenses</h2>
     </header>
-
+    <button type="button" class="buyPremiumBtn" id="buyPremiumRazor" onclick="">Buy Premium</button>
     <div class="formExpense">
         <form onsubmit="submitData(event);">
             <label for="money">Enter Money :</label>
@@ -122,6 +133,50 @@
 
     <script>
         const expenseDivContainer = document.getElementById('addedExpenses');
+
+        //event listener for buy premium button
+        document.getElementById('buyPremiumRazor').onclick = async (e) => {
+            console.log('inside buy Premium expense');
+            const token = localStorage.getItem('token');
+            console.log('token:' + token);
+            try {
+                const response = await axios.get(`http://localhost:3000/purchase/premiummembership`, {
+                    headers: {
+                        "Authorization": token
+                    }
+                });
+                console.log('Razorpay response:', response);
+
+                const options = {
+                    'key': response.data.key_id,//key id generated from dashboard 
+                    'order_id': response.data.order.id, // for one time payement
+
+                    //to handle the success payement
+                    'handler': async function (response) {
+                        await axios.post(`http://localhost:3000/purchase/updatetransactionstatus`, {
+                            order_id: options.order_id,
+                            payment_id: response.razorpay_payment_id,
+                        },
+                            { headers: { "Authorization": token } });
+
+                        alert('You are a premium user now');
+                    }
+                }
+
+                var rzp1 = new Razorpay(options);
+                rzp1.open();
+                e.preventDefault();
+                rzp1.on('payment.failed', function (response) {
+                    console.log('rzp1 response = ' + JSON.stringify(response));
+                    alert(response.error.description);
+                    window.location.href = 'addExpense.html';
+                })
+            }
+            catch (error) {
+                console.log('Unhandled error:', error);
+                alert('Something went wrong');
+            }
+        }//buyPremiumBtn
 
         //function to display the message
         function printAllExpenses(data) {
@@ -265,6 +320,10 @@
         }//deleteExpense
 
     </script>
+    <!-- axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- razorpay -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </body>
 
 </html>

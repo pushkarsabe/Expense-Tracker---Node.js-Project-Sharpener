@@ -5,100 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Expense Page</title>
-    <style>
-        * {
-            margin: 0;
-        }
-
-        .formExpense {
-            margin: 30px;
-            padding: 15px;
-            background-color: aliceblue;
-            margin-top: 55px;
-        }
-
-        header {
-            display: flex;
-            justify-content: center;
-            margin: 20px;
-            padding: 20px;
-            background-color: lavender;
-            margin-bottom: 13px;
-        }
-
-        label {
-            display: block;
-        }
-
-        input {
-            width: 50%;
-        }
-
-        .signUp {
-            margin: 10px;
-            text-decoration: none;
-        }
-
-        form {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            max-width: 400px;
-            /* Adjust the maximum width as needed */
-            margin: 0 auto;
-            /* Centers the form */
-        }
-
-        label,
-        input,
-        select,
-        button {
-            margin-bottom: 10px;
-        }
-
-        select {
-            flex: 1;
-            /* Takes up remaining space */
-            margin-right: 10px;
-            /* Adjust the margin as needed */
-        }
-
-        button {
-            flex-basis: 150px;
-            /* Adjust the initial width as needed */
-            background-color: azure;
-            border-radius: 5px;
-        }
-
-        .succesMessage {
-            background-color: rgb(0, 255, 0, 0.5);
-            margin: 20px;
-            padding: 5px;
-        }
-
-        .failureMessage {
-            /* background-color: red; */
-            background-color: rgba(255, 0, 0, 0.5);
-            margin: 20px;
-            padding: 5px;
-        }
-
-        .expense-card {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .buyPremiumBtn {
-            padding: 5px;
-            float: right;
-            margin-right: 50px;
-            background-color: azure;
-            border-radius: 5px;
-        }
-    </style>
+    <link rel="stylesheet" href="addexpense.css">
 </head>
 
 <body>
@@ -106,6 +13,8 @@
         <h2>Daily Expenses</h2>
     </header>
     <button type="button" class="buyPremiumBtn" id="buyPremiumRazor" onclick="">Buy Premium</button>
+    <div id="premiumUserText"></div>
+    <div id="premiumUserLBDiv"></div>
     <div class="formExpense">
         <form onsubmit="submitData(event);">
             <label for="money">Enter Money :</label>
@@ -127,12 +36,16 @@
     </div>
     <div id="message">
     </div>
-    <div id="addedExpenses">
-
+    <div id="addedExpenses" style="margin: 20px;">
+        <h2 style="margin-left: 25px;margin-bottom: 10px;">Expenses List</h2>
     </div>
-
+    <hr>
+    <h2 style="margin-left: 42px;margin-bottom: 10px;">LeaderBoard List</h2>
+    <ol id="LeaderBoardsDiv"></ol>
+    <hr>
     <script>
         const expenseDivContainer = document.getElementById('addedExpenses');
+        const LeaderBoardsDivContainer = document.getElementById('LeaderBoardsDiv');
 
         //event listener for buy premium button
         document.getElementById('buyPremiumRazor').onclick = async (e) => {
@@ -160,6 +73,9 @@
                             { headers: { "Authorization": token } });
 
                         alert('You are a premium user now');
+                        document.getElementById('buyPremiumRazor').style.visibility = 'hidden';
+                        document.getElementById('premiumUserText').innerHTML = 'You are a premium user';
+
                     }
                 }
 
@@ -178,6 +94,55 @@
             }
         }//buyPremiumBtn
 
+        //to decode the token 
+        function parseJWT(token) {
+            var base64Url = token.split('.')[1];
+            var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+
+            return JSON.parse(jsonPayload);
+        }
+
+        //function to hide the premium button and display the text
+        function showPremiumuser() {
+            document.getElementById('buyPremiumRazor').style.visibility = 'hidden';
+            document.getElementById('premiumUserText').innerHTML = 'You are a premium user';
+        }
+
+        //function to display the leader board details to premium user
+        function printPremiumLeaderBoardDetails(data) {
+            console.log('name = ' + data.name);
+            console.log('total_cost = ' + data.total_cost);
+
+            const LBli = document.createElement('li');
+            const text = document.createTextNode(`Name : ${data.name} - Total Cost : ${data.total_cost}`);
+            LBli.appendChild(text);
+            LeaderBoardsDivContainer.appendChild(LBli);
+        }//printPremiumLeaderBoardDetails
+
+        //to show LeaderBoard
+        async function showLeaderBoards(val) {
+            console.log('user id = ' + val.id);
+            const token = localStorage.getItem('token');
+            try {
+                const response = await axios.get(`http://localhost:3000/premium/showLeaderBoard`, {
+                    headers: {
+                        "Authorization": token
+                    }
+                });
+                console.log('showLeaderBoards response = ' + JSON.stringify(response));
+                for (let i = 0; i < response.data.length; i++) {
+                    printPremiumLeaderBoardDetails(response.data[i]);
+                }
+            }
+            catch (error) {
+                console.log('Unhandled error:', error);
+            }
+
+        }// showLeaderBoards
+
         //function to display the message
         function printAllExpenses(data) {
             // console.log('id = ' + data.id);
@@ -194,12 +159,33 @@
                 <button type="button" id = "${data.id}" onclick="deleteExpense(${data.id})">Delete</button>
                 `;
             expenseDivContainer.appendChild(expenseDiv);
+            
         }//printAllExpenses
 
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('inside DOMContentLoaded expense');
             const token = localStorage.getItem('token');
             console.log('token:' + token);
+            const decodeToken = parseJWT(token);
+            console.log('decodeToken:' + JSON.stringify(decodeToken));
+            const isAdmin = decodeToken.ispremiumuser;
+            if (isAdmin) {
+                //if the user is premium the premium functionality will show up
+                showPremiumuser();
+                const premiumUserDIV = document.getElementById('premiumUserLBDiv');
+                const showLBtn = document.createElement('button');
+                showLBtn.setAttribute('type', 'button');
+                showLBtn.id = decodeToken.userid;
+                const buttonText = document.createTextNode('Show LeaderBoard');
+                showLBtn.appendChild(buttonText);
+                showLBtn.setAttribute('onclick', 'showLeaderBoards(this)');
+                showLBtn.style.padding = '2px';
+                showLBtn.style.fontSize = 'small';
+                showLBtn.style.marginTop = '20px';
+                showLBtn.style.marginLeft = '20px';
+                premiumUserDIV.appendChild(showLBtn);
+            }
+
             try {
                 const response = await axios.get(`http://localhost:3000/expense/get-expense`, {
                     headers: {

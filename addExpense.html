@@ -14,7 +14,7 @@
     </header>
     <button type="button" class="buyPremiumBtn" id="buyPremiumRazor" onclick="">Buy Premium</button>
     <div id="premiumUserText"></div>
-    <div id="premiumUserLBDiv"></div>
+    <div id="premiumUserLBDivBtn"></div>
     <div class="formExpense">
         <form onsubmit="submitData(event);">
             <label for="money">Enter Money :</label>
@@ -40,14 +40,25 @@
         <h2 style="margin-left: 25px;margin-bottom: 10px;">Expenses List</h2>
     </div>
     <hr>
-    <h2 style="margin-left: 42px;margin-bottom: 10px;">LeaderBoard List</h2>
-    <ol id="LeaderBoardsDiv"></ol>
+    <div>
+        <h2 id="leaderBoard-header" style="margin-left: 25px;margin-bottom:10px;"></h2>
+        <ol id="LeaderBoardsList"></ol>
+    </div>
     <hr>
+    <div id="downloadExpenseBtnDiv">
+        <button type="button" onclick="downloadEpense();" id="downloadexpense">Download Expense Data</button>
+    </div>
+    <hr>
+    <div id="showDailyExpensesDiv">
+
+    </div>
+    <hr>
+
     <script>
         const expenseDivContainer = document.getElementById('addedExpenses');
-        const LeaderBoardsDivContainer = document.getElementById('LeaderBoardsDiv');
+        const LeaderBoardsListContainer = document.getElementById('LeaderBoardsList');
 
-        //event listener for buy premium button
+        //event listener for buy premium button razorpay
         document.getElementById('buyPremiumRazor').onclick = async (e) => {
             console.log('inside buy Premium expense');
             const token = localStorage.getItem('token');
@@ -114,12 +125,12 @@
         //function to display the leader board details to premium user
         function printPremiumLeaderBoardDetails(data) {
             console.log('name = ' + data.name);
-            console.log('total_cost = ' + data.total_cost);
+            console.log('totalExpenses = ' + data.totalExpenses);
 
             const LBli = document.createElement('li');
-            const text = document.createTextNode(`Name : ${data.name} - Total Cost : ${data.total_cost}`);
+            const text = document.createTextNode(`Name : ${data.name} - Total Cost : ${data.totalExpenses}`);
             LBli.appendChild(text);
-            LeaderBoardsDivContainer.appendChild(LBli);
+            LeaderBoardsListContainer.appendChild(LBli);
         }//printPremiumLeaderBoardDetails
 
         //to show LeaderBoard
@@ -150,16 +161,26 @@
             // console.log('description = ' + data.description);
             // console.log('options = ' + data.options);
 
-            const expenseDiv = document.createElement('div');
-            expenseDiv.classList.add('expense-card');
-            expenseDiv.innerHTML =
-                `<p>Money: ${data.money}</P>
-                <p>Description: ${data.description}</P>
-                <p>Options: ${data.options}</P>
-                <button type="button" id = "${data.id}" onclick="deleteExpense(${data.id})">Delete</button>
-                `;
-            expenseDivContainer.appendChild(expenseDiv);
-            
+            // Create a table element
+            const expenseTable = document.createElement('table');
+            expenseTable.classList.add('expense-table');
+
+            // Create a table row
+            const newRow = expenseTable.insertRow();
+
+            // Insert cells into the row
+            const moneyCell = newRow.insertCell(0);
+            const descriptionCell = newRow.insertCell(1);
+            const optionsCell = newRow.insertCell(2);
+            const deleteCell = newRow.insertCell(3);
+
+            // Populate the cells with data
+            moneyCell.textContent = data.money;
+            descriptionCell.textContent = data.description;
+            optionsCell.textContent = data.options;
+
+            expenseDivContainer.appendChild(expenseTable);
+
         }//printAllExpenses
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -170,16 +191,18 @@
             console.log('decodeToken:' + JSON.stringify(decodeToken));
             const isAdmin = decodeToken.ispremiumuser;
             if (isAdmin) {
-                //if the user is premium the premium functionality will show up
+                //if the user is premium then the buy premium will stay hidden and the you are a premium user will be shown
                 showPremiumuser();
-                const premiumUserDIV = document.getElementById('premiumUserLBDiv');
+                const LBdiv = document.getElementById('leaderBoard-header').innerText = 'LeaderBoard List';
+
+                const premiumUserDIV = document.getElementById('premiumUserLBDivBtn');
                 const showLBtn = document.createElement('button');
                 showLBtn.setAttribute('type', 'button');
                 showLBtn.id = decodeToken.userid;
                 const buttonText = document.createTextNode('Show LeaderBoard');
                 showLBtn.appendChild(buttonText);
                 showLBtn.setAttribute('onclick', 'showLeaderBoards(this)');
-                showLBtn.style.padding = '2px';
+                showLBtn.style.padding = '5px';
                 showLBtn.style.fontSize = 'small';
                 showLBtn.style.marginTop = '20px';
                 showLBtn.style.marginLeft = '20px';
@@ -202,6 +225,24 @@
                 console.log('Unhandled error:', error);
             }
         })//DOMContentLoaded
+
+        //function to show download option and daily weekly expenses
+        async function download() {
+            console.log('inside showPremiumuserDailyExpenseDownload');
+
+            try {
+                const token = localStorage.getItem('token');
+                const res = await axios.get('http://localhost:3000/user/download', { headers: { "Authorization": token } })
+
+                var a = document.createElement("a");
+                a.href = response.data.fileUrl;
+                a.download = 'myexpense.csv';
+                a.click();
+            }
+            catch (error) {
+                console.log('Unhandled error:', error);
+            }
+        }
 
         //function to display the message
         function showMessage(msgText, className) {

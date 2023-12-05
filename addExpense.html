@@ -36,9 +36,24 @@
     </div>
     <div id="message">
     </div>
+
+    <h2 style="margin-left: 25px;margin-bottom: 10px;">Expenses List</h2>
     <div id="addedExpenses" style="margin: 20px;">
-        <h2 style="margin-left: 25px;margin-bottom: 10px;">Expenses List</h2>
+        <table id="expenseTable">
+            <thead>
+                <tr>
+                    <th>Money</th>
+                    <th>Description</th>
+                    <th>Options</th>
+                    <th>Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+
+            </tbody>
+        </table>
     </div>
+
     <hr>
     <div>
         <h2 id="leaderBoard-header" style="margin-left: 25px;margin-bottom:10px;"></h2>
@@ -53,6 +68,19 @@
 
     </div>
     <hr>
+    <h2 style="margin-left: 25px;margin-bottom: 10px;">Expenses List</h2>
+    <div id="downloadedExpenses" style="margin: 20px;">
+        <table id="downloadTable">
+            <thead>
+                <tr>
+                    <th>URL</th>
+                </tr>
+            </thead>
+            <tbody>
+
+            </tbody>
+        </table>
+    </div>
 
     <script>
         const expenseDivContainer = document.getElementById('addedExpenses');
@@ -154,16 +182,13 @@
 
         }// showLeaderBoards
 
-        //function to display the message
+        //function to display the expense list inside table
         function printAllExpenses(data) {
             // console.log('id = ' + data.id);
             // console.log('money = ' + data.money);
             // console.log('description = ' + data.description);
             // console.log('options = ' + data.options);
-
-            // Create a table element
-            const expenseTable = document.createElement('table');
-            expenseTable.classList.add('expense-table');
+            const expenseTable = document.getElementById('expenseTable');
 
             // Create a table row
             const newRow = expenseTable.insertRow();
@@ -179,7 +204,29 @@
             descriptionCell.textContent = data.description;
             optionsCell.textContent = data.options;
 
-            expenseDivContainer.appendChild(expenseTable);
+            // delete button
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.textContent = 'Delete';
+            deleteButton.addEventListener('click', function () {
+                deleteExpense(data.id);
+                expenseTable.deleteRow(newRow.rowIndex);
+            });
+            deleteCell.appendChild(deleteButton);
+
+        }//printAllExpenses
+
+        //function to display the downloaded files by the user
+        function printAllDownloads(data) {
+            // console.log('id = ' + data.id);
+            // console.log('file url = ' + data.URL);
+            const downloadTable = document.getElementById('downloadTable');
+            // Create a table row
+            const newRow = downloadTable.insertRow();
+            // Insert cells into the row
+            const fileCell = newRow.insertCell(0);
+            // Populate the cells with data
+            fileCell.textContent = data.URL;
 
         }//printAllExpenses
 
@@ -220,29 +267,50 @@
                     printAllExpenses(response.data.expenseData[i]);
                 }
 
+                const res = await axios.get('http://localhost:3000/expense/getFiles', { headers: { "Authorization": token } })
+                console.log('inside getFiles');
+                console.log('res = ', JSON.stringify(res));
+                showMessage(res.data.message, 'succesMessage');
+                for (let i = 0; i < res.data.downloadFiles.length; i++) {
+                    printAllDownloads(res.data.downloadFiles[i]);
+                }
             }
             catch (error) {
                 console.log('Unhandled error:', error);
             }
+
         })//DOMContentLoaded
 
         //function to show download option and daily weekly expenses
-        async function download() {
-            console.log('inside showPremiumuserDailyExpenseDownload');
-
+        async function downloadEpense() {
+            console.log('inside download function');
             try {
+
                 const token = localStorage.getItem('token');
-                const res = await axios.get('http://localhost:3000/user/download', { headers: { "Authorization": token } })
+                const res = await axios.get('http://localhost:3000/expense/download', { headers: { "Authorization": token } })
+                console.log('res = ', JSON.stringify(res));
 
                 var a = document.createElement("a");
-                a.href = response.data.fileUrl;
+                a.href = res.data.fileUrl;
                 a.download = 'myexpense.csv';
                 a.click();
+                showMessage('Download Started', 'succesMessage');
             }
             catch (error) {
-                console.log('Unhandled error:', error);
+                if (error.response.status === 401) {
+                    console.log("error message = " + error.response.data.message);
+                    showMessage(error.response.data.message, 'failureMessage');
+                }
+                else if (error.response.status === 400) {
+                    console.log("error message = " + error.response.data.error.message);
+                    showMessage(error.response.data.error.message, 'failureMessage');
+                }
+                else {
+                    console.log("error message = " + error);
+                    showMessage(error, 'failureMessage');
+                }
             }
-        }
+        }//downloadEpense
 
         //function to display the message
         function showMessage(msgText, className) {
@@ -295,18 +363,7 @@
                 document.getElementById('options').value = "";
 
                 showMessage(response.data.message, 'succesMessage');
-
-                const expenseDiv = document.createElement('div');
-                expenseDiv.classList.add('expense-card');
-
-                expenseDiv.innerHTML =
-                    `<p>Money: ${response.data.newExpenseData.money}</P>
-                <p>Description: ${response.data.newExpenseData.description}</P>
-                <p>Options: ${response.data.newExpenseData.options}</P>
-                <button type="button"  id = "${response.data.newExpenseData.id}" onclick="deleteExpense(${response.data.newExpenseData.id})">Delete</button>
-                `;
-
-                expenseDivContainer.appendChild(expenseDiv);
+                printAllExpenses(response.data.newExpenseData);
 
             }
             catch (error) {

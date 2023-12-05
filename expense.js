@@ -1,6 +1,52 @@
 const Expense = require('../models/expense');
 const User = require('../models/user');
+const DownloadExpense = require('../models/downloadExpense');
 const sequelize = require('../util/database')
+//package to upload the file to S3
+const AWS = require('aws-sdk');
+require('dotenv').config();
+//the upload to s3
+const S3Services = require('../services/S3services');
+
+exports.downloadExpense = async (req, res, next) => {
+
+    console.log('getAllUsers userData = ' + JSON.stringify(req.user));
+
+    try {
+        //only if user is premium user
+        if (req.user.ispremiumuser) {
+            const userExpenseData = await Expense.findAll({ where: { userid: req.user.id } });
+            console.log('downloadExpense userExpenseData' + JSON.stringify(userExpenseData));
+            const stringifiedExpenseData = JSON.stringify(userExpenseData);
+            console.log('downloadExpense stringifiedExpenseData' + stringifiedExpenseData);
+            const userid = req.user.id;
+            const filename = `Expense${userid}/${new Date()}.txt`;
+            const fileS3URL = await S3Services.uploadToS3(stringifiedExpenseData, filename, userid);
+            console.log('downloadExpense fileS3URL = ' + fileS3URL);
+
+            res.status(200).json({ fileUrl: fileS3URL, meassage: 'Data received' });
+        } else
+            return res.status(401).json({ message: 'Not A premium user' })
+        //number of hashing or strengthen
+    }
+    catch (err) {
+        console.log(err);
+        res.status(400).json({ error: err })
+    }
+}//downloadExpense
+
+exports.getDownloadedFiles = async (req, res, next) => {
+    try {
+        const files = await DownloadExpense.findAll({ where: { UserId: req.user.id } });
+        console.log('getDownloadedFiles files' + JSON.stringify(files));
+
+        res.status(200).json({ downloadFiles: files, message: 'Files received' });
+    }
+    catch (err) {
+        console.log(err);
+        res.status(400).json({ error: err })
+    }
+}//getDownloadedFiles
 
 exports.postAddExpense = async (req, res, next) => {
     //any post request if faces any problem but gets saved in database then transaction is used and keeps track of CRUD operations and if anything goes wrong it will roll back and if nothing happens it will commmit
@@ -95,7 +141,6 @@ exports.deleteExpense = async (req, res, next) => {
 }
 
 exports.getExpense = async (req, res, next) => {
-
     try {
         const allExpenseData = await Expense.findAll({ where: { userid: req.user.id } });
         res.status(200).json({ expenseData: allExpenseData });

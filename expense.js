@@ -38,7 +38,7 @@ exports.downloadExpense = async (req, res, next) => {
 exports.getDownloadedFiles = async (req, res, next) => {
     try {
         const files = await DownloadExpense.findAll({ where: { UserId: req.user.id } });
-        console.log('getDownloadedFiles files' + JSON.stringify(files));
+        // console.log('getDownloadedFiles files' + JSON.stringify(files));
 
         res.status(200).json({ downloadFiles: files, message: 'Files received' });
     }
@@ -140,10 +140,44 @@ exports.deleteExpense = async (req, res, next) => {
     }
 }
 
+// exports.getExpense = async (req, res, next) => {
+//     try {
+//         const allExpenseData = await Expense.findAll({ where: { userid: req.user.id } });
+//         const totalCount = await Expense.count({ where: { userid: req.user.id } });
+//         res.status(200).json({ expenseData: allExpenseData, count: totalCount });
+//     } catch (err) {
+//         console.log('getExpense err = ' + err);
+//         return res.status(400).json({ error: err })
+//     }
+// }
+
+
 exports.getExpense = async (req, res, next) => {
     try {
-        const allExpenseData = await Expense.findAll({ where: { userid: req.user.id } });
-        res.status(200).json({ expenseData: allExpenseData });
+        //limit per page
+        const page = + req.query.page || 1;
+        console.log('getExpense page = ' + page);
+        const ITEM_PER_PAGE = Number(req.query.numberOfRows);
+        console.log('getExpense ITEM_PER_PAGE = ' + ITEM_PER_PAGE);
+        const totalCount = await Expense.count({ where: { userid: req.user.id } });
+        console.log('getExpense totalCount = ' + totalCount);
+
+        const allExpenseData = await Expense.findAll({
+            where: { userid: req.user.id },
+            offset: (page - 1) * ITEM_PER_PAGE,
+            limit: ITEM_PER_PAGE,
+        });
+        console.log('getExpense allExpenseData = ' + JSON.stringify(allExpenseData));
+
+        res.status(200).json({
+            expenses: allExpenseData,
+            currentPage: page,
+            hasNextPage: ITEM_PER_PAGE * page < totalCount,
+            nextPage: page + 1,
+            hasPreviousPage: page > 1,
+            previousPage: page - 1,
+            lastPage: Math.ceil(totalCount / ITEM_PER_PAGE),
+        });
     } catch (err) {
         console.log('getExpense err = ' + err);
         return res.status(400).json({ error: err })

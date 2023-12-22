@@ -39,19 +39,7 @@
 
     <h2 style="margin-left: 25px;margin-bottom: 10px;">Expenses List</h2>
     <div id="addedExpenses" style="margin: 20px;">
-        <table id="expenseTable">
-            <thead>
-                <tr>
-                    <th>Money</th>
-                    <th>Description</th>
-                    <th>Options</th>
-                    <th>Delete</th>
-                </tr>
-            </thead>
-            <tbody>
-
-            </tbody>
-        </table>
+        <ol id="olExpenses"></ol>
     </div>
 
     <hr>
@@ -64,11 +52,7 @@
         <button type="button" onclick="downloadEpense();" id="downloadexpense">Download Expense Data</button>
     </div>
     <hr>
-    <div id="showDailyExpensesDiv">
-
-    </div>
-    <hr>
-    <h2 style="margin-left: 25px;margin-bottom: 10px;">Expenses List</h2>
+    <h2 style="margin-left: 25px;margin-bottom: 10px;">Downloaded Expenses List</h2>
     <div id="downloadedExpenses" style="margin: 20px;">
         <table id="downloadTable">
             <thead>
@@ -77,14 +61,16 @@
                 </tr>
             </thead>
             <tbody>
-
             </tbody>
         </table>
     </div>
+    <hr>
+    <h2 style="margin-left: 25px;margin-bottom: 10px;">Testing pagination List</h2>
+    <div id="paginationDiv" style="margin: 20px;">
+        <ol id="paginationList"></ol>
+    </div>
 
     <script>
-        const expenseDivContainer = document.getElementById('addedExpenses');
-        const LeaderBoardsListContainer = document.getElementById('LeaderBoardsList');
 
         //event listener for buy premium button razorpay
         document.getElementById('buyPremiumRazor').onclick = async (e) => {
@@ -152,6 +138,7 @@
 
         //function to display the leader board details to premium user
         function printPremiumLeaderBoardDetails(data) {
+            const LeaderBoardsListContainer = document.getElementById('LeaderBoardsList');
             console.log('name = ' + data.name);
             console.log('totalExpenses = ' + data.totalExpenses);
 
@@ -182,40 +169,6 @@
 
         }// showLeaderBoards
 
-        //function to display the expense list inside table
-        function printAllExpenses(data) {
-            // console.log('id = ' + data.id);
-            // console.log('money = ' + data.money);
-            // console.log('description = ' + data.description);
-            // console.log('options = ' + data.options);
-            const expenseTable = document.getElementById('expenseTable');
-
-            // Create a table row
-            const newRow = expenseTable.insertRow();
-
-            // Insert cells into the row
-            const moneyCell = newRow.insertCell(0);
-            const descriptionCell = newRow.insertCell(1);
-            const optionsCell = newRow.insertCell(2);
-            const deleteCell = newRow.insertCell(3);
-
-            // Populate the cells with data
-            moneyCell.textContent = data.money;
-            descriptionCell.textContent = data.description;
-            optionsCell.textContent = data.options;
-
-            // delete button
-            const deleteButton = document.createElement('button');
-            deleteButton.type = 'button';
-            deleteButton.textContent = 'Delete';
-            deleteButton.addEventListener('click', function () {
-                deleteExpense(data.id);
-                expenseTable.deleteRow(newRow.rowIndex);
-            });
-            deleteCell.appendChild(deleteButton);
-
-        }//printAllExpenses
-
         //function to display the downloaded files by the user
         function printAllDownloads(data) {
             // console.log('id = ' + data.id);
@@ -228,10 +181,57 @@
             // Populate the cells with data
             fileCell.textContent = data.URL;
 
+        }//printAllDownloads
+
+        //function to display the expense list inside list
+        // function printAllExpenses(data) {
+        //     // console.log('id = ' + data.id);
+        //     // console.log('money = ' + data.money);
+        //     // console.log('description = ' + data.description);
+        //     // console.log('options = ' + data.options);
+        //     const olExpenses = document.getElementById('olExpenses');
+        //     const li = document.createElement('li');
+        //     const text = document.createTextNode(`Money : ${data.money}, Description  : ${data.description},, Options  : ${data.options}`);
+        //     li.appendChild(text);
+        //     const deleteBTN = document.createElement('button');
+        //     deleteBTN.id = data.id;
+        //     deleteBTN.setAttribute('value', 'Delete');
+        //     deleteBTN.textContent = 'Delete';
+        //     li.appendChild(deleteBTN);
+
+        //     deleteBTN.addEventListener('click', () => {
+        //         deleteExpense(data.id);
+        //     })
+        //     olExpenses.appendChild(li);
+
+        // }//printAllExpenses
+
+
+        function printAllExpenses(data) {
+            console.log('inside printAllExpenses');
+            console.log('data = ' + data.id);
+            // console.log('money = ' + data.money);
+            // console.log('description = ' + data.description);
+            // console.log('options = ' + data.options);
+            const paginationList = document.getElementById('paginationList');
+            const li = document.createElement('li');
+            const text = document.createTextNode(`Money : ${data.money}, Description  : ${data.description},, Options  : ${data.options}`);
+            li.appendChild(text);
+            const deleteBTN = document.createElement('button');
+            deleteBTN.id = data.id;
+            deleteBTN.setAttribute('value', 'Delete');
+            deleteBTN.textContent = 'Delete';
+            li.appendChild(deleteBTN);
+
+            deleteBTN.addEventListener('click', () => {
+                deleteExpense(data.id);
+            })
+            paginationList.appendChild(li);
         }//printAllExpenses
 
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('inside DOMContentLoaded expense');
+
             const token = localStorage.getItem('token');
             console.log('token:' + token);
             const decodeToken = parseJWT(token);
@@ -256,6 +256,9 @@
                 premiumUserDIV.appendChild(showLBtn);
             }
 
+            const PAGE_SIZE = 5; // Number of items per page
+            let currentPage = 1;
+
             try {
                 const response = await axios.get(`http://localhost:3000/expense/get-expense`, {
                     headers: {
@@ -263,13 +266,69 @@
                     }
                 });
 
-                for (let i = 0; i < response.data.expenseData.length; i++) {
-                    printAllExpenses(response.data.expenseData[i]);
+                // Function to display expenses for the current page
+                function displayCurrentPage() {
+                    const start = (currentPage - 1) * PAGE_SIZE;
+                    const end = start + PAGE_SIZE;
+                    const currentExpenses = response.data.expenseData.slice(start, end);
+
+                    // Clear previous content
+                    olExpenses.innerHTML = '';
+
+                    // Display expenses for the current page
+                    currentExpenses.forEach(data => {
+                        printAllExpenses(data);
+                    });
                 }
+
+                // Function to handle navigation buttons
+                function handleNavigationButtons() {
+                    const paginationDiv = document.getElementById('paginationDiv');
+
+                    const prevButton = document.createElement('button');
+                    prevButton.textContent = 'Previous';
+                    prevButton.addEventListener('click', function () {
+                        if (currentPage > 1) {
+                            currentPage--;
+                            displayCurrentPage();
+                            updatePaginationLinks();
+                        }
+                    });
+
+                    const nextButton = document.createElement('button');
+                    nextButton.textContent = 'Next';
+                    nextButton.addEventListener('click', function () {
+                        const totalPages = Math.ceil(response.data.expenseData.length / PAGE_SIZE);
+                        if (currentPage < totalPages) {
+                            currentPage++;
+                            displayCurrentPage();
+                            updatePaginationLinks();
+                        }
+                    });
+
+                    const currentButton = document.createElement('button');
+                    currentButton.textContent = 'Current';
+                    currentButton.addEventListener('click', function () {
+                        // You can add your logic for handling the "Current" button
+                        // For example, you might want to reset to the first page
+                        currentPage = 1;
+                        displayCurrentPage();
+                    });
+
+                    // Append buttons to the page
+                    paginationDiv.appendChild(prevButton);
+                    paginationDiv.appendChild(nextButton);
+                    paginationDiv.appendChild(currentButton);
+                }
+
+
+                // Initial display
+                displayCurrentPage();
+                handleNavigationButtons();
 
                 const res = await axios.get('http://localhost:3000/expense/getFiles', { headers: { "Authorization": token } })
                 console.log('inside getFiles');
-                console.log('res = ', JSON.stringify(res));
+                // console.log('res = ', JSON.stringify(res));
                 showMessage(res.data.message, 'succesMessage');
                 for (let i = 0; i < res.data.downloadFiles.length; i++) {
                     printAllDownloads(res.data.downloadFiles[i]);
@@ -281,14 +340,67 @@
 
         })//DOMContentLoaded
 
+
+
+
+        // document.addEventListener('DOMContentLoaded', async () => {
+        //     console.log('inside DOMContentLoaded expense');
+
+        //     const token = localStorage.getItem('token');
+        //     console.log('token:' + token);
+        //     const decodeToken = parseJWT(token);
+        //     console.log('decodeToken:' + JSON.stringify(decodeToken));
+        //     const isAdmin = decodeToken.ispremiumuser;
+        //     if (isAdmin) {
+        //         //if the user is premium then the buy premium will stay hidden and the you are a premium user will be shown
+        //         showPremiumuser();
+        //         const LBdiv = document.getElementById('leaderBoard-header').innerText = 'LeaderBoard List';
+
+        //         const premiumUserDIV = document.getElementById('premiumUserLBDivBtn');
+        //         const showLBtn = document.createElement('button');
+        //         showLBtn.setAttribute('type', 'button');
+        //         showLBtn.id = decodeToken.userid;
+        //         const buttonText = document.createTextNode('Show LeaderBoard');
+        //         showLBtn.appendChild(buttonText);
+        //         showLBtn.setAttribute('onclick', 'showLeaderBoards(this)');
+        //         showLBtn.style.padding = '5px';
+        //         showLBtn.style.fontSize = 'small';
+        //         showLBtn.style.marginTop = '20px';
+        //         showLBtn.style.marginLeft = '20px';
+        //         premiumUserDIV.appendChild(showLBtn);
+        //     }
+
+        //     try {
+        //         const response = await axios.get(`http://localhost:3000/expense/get-expense`, {
+        //             headers: {
+        //                 "Authorization": token
+        //             }
+        //         });
+        //         for (let i = 0; i < response.data.expenseData.length; i++) {
+        //             printAllExpenses(response.data.expenseData[i]);
+        //         }
+
+        //         const res = await axios.get('http://localhost:3000/expense/getFiles', { headers: { "Authorization": token } })
+        //         console.log('inside getFiles');
+        //         console.log('res = ', JSON.stringify(res));
+        //         showMessage(res.data.message, 'succesMessage');
+        //         for (let i = 0; i < res.data.downloadFiles.length; i++) {
+        //             printAllDownloads(res.data.downloadFiles[i]);
+        //         }
+        //     }
+        //     catch (error) {
+        //         console.log('Unhandled error:', error);
+        //     }
+
+        // })//DOMContentLoaded
+
         //function to show download option and daily weekly expenses
         async function downloadEpense() {
             console.log('inside download function');
             try {
-
                 const token = localStorage.getItem('token');
                 const res = await axios.get('http://localhost:3000/expense/download', { headers: { "Authorization": token } })
-                console.log('res = ', JSON.stringify(res));
+                // console.log('res = ', JSON.stringify(res));
 
                 var a = document.createElement("a");
                 a.href = res.data.fileUrl;
@@ -364,7 +476,6 @@
 
                 showMessage(response.data.message, 'succesMessage');
                 printAllExpenses(response.data.newExpenseData);
-
             }
             catch (error) {
                 //to handle the output response errors
@@ -400,7 +511,7 @@
 
             //to delete data from frotend 
             const parentele = document.getElementById(id).parentNode;
-            expenseDivContainer.removeChild(parentele);
+            olExpenses.removeChild(parentele);
         }//deleteExpense
 
     </script>
